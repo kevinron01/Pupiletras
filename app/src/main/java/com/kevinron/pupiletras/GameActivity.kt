@@ -8,6 +8,7 @@ import android.widget.Chronometer
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -53,6 +54,7 @@ class GameActivity : AppCompatActivity() {
     private var restoredElapsedMs = 0L
     private var isCompleting = false
     private var clearHintRunnable: Runnable? = null
+    private var maxTimeMs: Long = 0L
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -81,9 +83,11 @@ class GameActivity : AppCompatActivity() {
         MainActivity.savePlayerName(this, playerName)
 
         level = GameData.generateLevel(difficulty, levelNumber, sessionSeed)
+        maxTimeMs = GameSettings.timeLimitMinutes(this, level.difficulty) * 60_000L
 
         findViewById<TextView>(R.id.tvLevelTitle).text = level.title
-        findViewById<TextView>(R.id.tvCategory).text = "${level.topicLabel} · ${difficulty.title}"
+        findViewById<TextView>(R.id.tvCategory).text =
+            "${level.topicLabel} · ${difficulty.title} · tiempo: ${GameSettings.formatTimeLimit((maxTimeMs / 60_000L).toInt())}"
         findViewById<TextView>(R.id.tvPlayer).text = "Jugador: $playerName"
 
         progress = findViewById(R.id.tvProgress)
@@ -95,6 +99,14 @@ class GameActivity : AppCompatActivity() {
         definitionCard = findViewById(R.id.definitionCard)
 
         chronometer.base = SystemClock.elapsedRealtime() - restoredElapsedMs
+        chronometer.setOnChronometerTickListener {
+            if (!isCompleting) {
+                val elapsedMs = SystemClock.elapsedRealtime() - chronometer.base
+                if (elapsedMs >= maxTimeMs) {
+                    handleTimeExpired()
+                }
+            }
+        }
         chronometer.start()
 
         findViewById<ImageButton>(R.id.btnBack).setOnClickListener { finish() }
@@ -174,6 +186,23 @@ class GameActivity : AppCompatActivity() {
             putExtra(WinActivity.EXTRA_COMPLETION_BONUS, completionBonus)
         })
         finish()
+    }
+
+    private fun handleTimeExpired() {
+        if (isCompleting) return
+        isCompleting = true
+        chronometer.stop()
+        clearHintRunnable?.let { board.removeCallbacks(it) }
+        clearHintRunnable = null
+        board.clearHint()
+        GameProgressStore.clearActiveSession(this)
+        showCheer("¡$playerName! Se acabó el tiempo en ${level.difficulty.title}. Inténtalo de nuevo.")
+        Toast.makeText(
+            this,
+            "Tiempo agotado (${GameSettings.formatTimeLimit((maxTimeMs / 60_000L).toInt())})",
+            Toast.LENGTH_LONG
+        ).show()
+        board.postDelayed({ finish() }, 1000L)
     }
 
     private fun updateProgress() {

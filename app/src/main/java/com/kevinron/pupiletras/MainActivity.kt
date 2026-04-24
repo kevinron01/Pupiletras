@@ -49,6 +49,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var resumeTitle: TextView
     private lateinit var resumeDesc: TextView
     private lateinit var resumeButton: Button
+    private lateinit var easyTimeButton: Button
+    private lateinit var mediumTimeButton: Button
+    private lateinit var hardTimeButton: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -60,6 +63,9 @@ class MainActivity : AppCompatActivity() {
         resumeTitle = findViewById(R.id.tvResumeTitle)
         resumeDesc = findViewById(R.id.tvResumeDesc)
         resumeButton = findViewById(R.id.btnResume)
+        easyTimeButton = findViewById(R.id.btnEasyTime)
+        mediumTimeButton = findViewById(R.id.btnMediumTime)
+        hardTimeButton = findViewById(R.id.btnHardTime)
     }
 
     override fun onResume() {
@@ -82,6 +88,9 @@ class MainActivity : AppCompatActivity() {
             descId = R.id.tvHardDesc,
             difficulty = Difficulty.HARD
         )
+        bindTimeSetting(easyTimeButton, Difficulty.EASY)
+        bindTimeSetting(mediumTimeButton, Difficulty.MEDIUM)
+        bindTimeSetting(hardTimeButton, Difficulty.HARD)
     }
 
     private fun renderResumeCard() {
@@ -98,6 +107,23 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, GameActivity::class.java).apply {
                 putExtra(GameActivity.EXTRA_RESUME_SAVED_GAME, true)
             })
+        }
+    }
+
+    private fun bindTimeSetting(button: Button, difficulty: Difficulty) {
+        fun renderLabel() {
+            val minutes = GameSettings.timeLimitMinutes(this, difficulty)
+            button.text = "${difficulty.title}: ${GameSettings.formatTimeLimit(minutes)}"
+        }
+        renderLabel()
+        button.setOnClickListener {
+            val updated = GameSettings.cycleTimeLimitMinutes(this, difficulty)
+            button.text = "${difficulty.title}: ${GameSettings.formatTimeLimit(updated)}"
+            Toast.makeText(
+                this,
+                "Tiempo máximo en ${difficulty.title.lowercase()}: ${GameSettings.formatTimeLimit(updated)}",
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
 
