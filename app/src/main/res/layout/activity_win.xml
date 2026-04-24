@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:background="@color/bg_main"
+    android:padding="36dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="&#127881;"
+        android:textSize="80sp"
+        android:layout_marginBottom="12dp" />
+
+    <TextView
+        android:id="@+id/tvWinTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="26sp"
+        android:textColor="@color/primary"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:id="@+id/tvWinSub"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="15sp"
+        android:textColor="@color/text_secondary"
+        android:gravity="center"
+        android:layout_marginBottom="52dp" />
+
+    <Button
+        android:id="@+id/btnNextLevel"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:text="Siguiente Nivel"
+        android:textSize="17sp"
+        android:backgroundTint="@color/primary"
+        android:layout_marginBottom="12dp"
+        android:visibility="gone" />
+
+    <Button
+        android:id="@+id/btnReplay"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:text="Jugar de Nuevo"
+        android:textSize="17sp"
+        android:backgroundTint="@color/level1"
+        android:layout_marginBottom="12dp" />
+
+    <Button
+        android:id="@+id/btnMenu"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:text="Menú Principal"
+        android:textSize="17sp"
+        android:backgroundTint="@color/text_secondary" />
+
+</LinearLayout>
