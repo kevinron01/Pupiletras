@@ -101,8 +101,14 @@ class MainActivity : AppCompatActivity() {
         }
         resumeCard.visibility = View.VISIBLE
         resumeTitle.text = "Partida guardada de ${saved.playerName}"
+        val savedMinutes = (saved.maxTimeMs / 60_000L).toInt()
+        val timeLabel = if (savedMinutes > 0) {
+            " · tiempo ${GameSettings.formatTimeLimit(savedMinutes)}"
+        } else {
+            ""
+        }
         resumeDesc.text =
-            "${saved.difficulty.title} · Nivel ${saved.levelNumber}/${GameData.MAX_LEVELS_PER_DIFFICULTY} · ${saved.foundWords.size} palabras encontradas · ${saved.score} puntos"
+            "${saved.difficulty.title}$timeLabel · Nivel ${saved.levelNumber}/${GameData.MAX_LEVELS_PER_DIFFICULTY} · ${saved.foundWords.size} palabras encontradas · ${saved.score} puntos"
         resumeButton.setOnClickListener {
             startActivity(Intent(this, GameActivity::class.java).apply {
                 putExtra(GameActivity.EXTRA_RESUME_SAVED_GAME, true)

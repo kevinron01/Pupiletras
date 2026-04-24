@@ -7,6 +7,7 @@ data class SavedGameState(
     val difficulty: Difficulty,
     val levelNumber: Int,
     val sessionSeed: Int,
+    val maxTimeMs: Long,
     val elapsedMs: Long,
     val score: Int,
     val foundWords: Set<String>
@@ -19,6 +20,7 @@ object GameProgressStore {
     private const val KEY_ACTIVE_DIFFICULTY = "active_difficulty"
     private const val KEY_ACTIVE_LEVEL = "active_level"
     private const val KEY_ACTIVE_SEED = "active_seed"
+    private const val KEY_ACTIVE_MAX_TIME = "active_max_time"
     private const val KEY_ACTIVE_ELAPSED = "active_elapsed"
     private const val KEY_ACTIVE_SCORE = "active_score"
     private const val KEY_ACTIVE_FOUND = "active_found"
@@ -29,6 +31,7 @@ object GameProgressStore {
             .putString(KEY_ACTIVE_DIFFICULTY, state.difficulty.key)
             .putInt(KEY_ACTIVE_LEVEL, state.levelNumber)
             .putInt(KEY_ACTIVE_SEED, state.sessionSeed)
+            .putLong(KEY_ACTIVE_MAX_TIME, state.maxTimeMs)
             .putLong(KEY_ACTIVE_ELAPSED, state.elapsedMs)
             .putInt(KEY_ACTIVE_SCORE, state.score)
             .putString(KEY_ACTIVE_FOUND, state.foundWords.joinToString("|"))
@@ -53,6 +56,7 @@ object GameProgressStore {
             difficulty = Difficulty.fromKey(difficultyKey),
             levelNumber = levelNumber,
             sessionSeed = prefs.getInt(KEY_ACTIVE_SEED, 0),
+            maxTimeMs = prefs.getLong(KEY_ACTIVE_MAX_TIME, 0L),
             elapsedMs = prefs.getLong(KEY_ACTIVE_ELAPSED, 0L),
             score = prefs.getInt(KEY_ACTIVE_SCORE, 0),
             foundWords = foundWords
@@ -65,6 +69,7 @@ object GameProgressStore {
             .remove(KEY_ACTIVE_DIFFICULTY)
             .remove(KEY_ACTIVE_LEVEL)
             .remove(KEY_ACTIVE_SEED)
+            .remove(KEY_ACTIVE_MAX_TIME)
             .remove(KEY_ACTIVE_ELAPSED)
             .remove(KEY_ACTIVE_SCORE)
             .remove(KEY_ACTIVE_FOUND)

@@ -9,6 +9,7 @@ import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -83,7 +84,9 @@ class GameActivity : AppCompatActivity() {
         MainActivity.savePlayerName(this, playerName)
 
         level = GameData.generateLevel(difficulty, levelNumber, sessionSeed)
-        maxTimeMs = GameSettings.timeLimitMinutes(this, level.difficulty) * 60_000L
+        maxTimeMs = saved?.maxTimeMs
+            ?.takeIf { it > 0L }
+            ?: (GameSettings.timeLimitMinutes(this, level.difficulty) * 60_000L)
 
         findViewById<TextView>(R.id.tvLevelTitle).text = level.title
         findViewById<TextView>(R.id.tvCategory).text =
@@ -197,12 +200,7 @@ class GameActivity : AppCompatActivity() {
         board.clearHint()
         GameProgressStore.clearActiveSession(this)
         showCheer("¡$playerName! Se acabó el tiempo en ${level.difficulty.title}. Inténtalo de nuevo.")
-        Toast.makeText(
-            this,
-            "Tiempo agotado (${GameSettings.formatTimeLimit((maxTimeMs / 60_000L).toInt())})",
-            Toast.LENGTH_LONG
-        ).show()
-        board.postDelayed({ finish() }, 1000L)
+        showTimeoutDialog()
     }
 
     private fun updateProgress() {
@@ -257,7 +255,8 @@ class GameActivity : AppCompatActivity() {
         }
         val word = remaining.random()
         showDefinition(word)
-        applyAidCost(HINT_COST)
+        val effectiveHintCost = aidCostFor(HINT_COST)
+        applyAidCost(effectiveHintCost)
         val hasHintOnBoard = board.highlightHintForWord(
             word.boardText,
             WordSearchView.HintReveal.START
@@ -273,7 +272,7 @@ class GameActivity : AppCompatActivity() {
         } else {
             "Pista: ${word.text} empieza por ${word.text.first()}"
         }
-        showCheer("¡$playerName! $hintMessage. -$HINT_COST puntos")
+        showCheer("¡$playerName! $hintMessage. -$effectiveHintCost puntos")
         saveSession()
     }
 
@@ -285,14 +284,24 @@ class GameActivity : AppCompatActivity() {
         }
         val randomWord = remaining.random()
         showDefinition(randomWord)
-        applyAidCost(SURPRISE_COST)
+        val effectiveSurpriseCost = aidCostFor(SURPRISE_COST)
+        applyAidCost(effectiveSurpriseCost)
         if (board.highlightHintForWord(randomWord.boardText, WordSearchView.HintReveal.FULL)) {
             scheduleHintClear(delayMs = SURPRISE_DURATION_MS)
-            showCheer("¡$playerName! Sorpresa: la palabra ${randomWord.text} fue señalada. ¡Márcala! -$SURPRISE_COST puntos")
+            showCheer("¡$playerName! Sorpresa: la palabra ${randomWord.text} fue señalada. ¡Márcala! -$effectiveSurpriseCost puntos")
         } else {
-            showCheer("¡$playerName! Sorpresa: busca ${randomWord.text}. -$SURPRISE_COST puntos")
+            showCheer("¡$playerName! Sorpresa: busca ${randomWord.text}. -$effectiveSurpriseCost puntos")
         }
         saveSession()
+    }
+
+    private fun aidCostFor(baseCost: Int): Int {
+        val multiplier = when (level.difficulty) {
+            Difficulty.EASY -> 1.0
+            Difficulty.MEDIUM -> 1.2
+            Difficulty.HARD -> 1.4
+        }
+        return (baseCost * multiplier).toInt()
     }
 
     private fun applyAidCost(cost: Int) {
@@ -342,11 +351,41 @@ class GameActivity : AppCompatActivity() {
                 difficulty = level.difficulty,
                 levelNumber = level.levelNumber,
                 sessionSeed = sessionSeed,
+                maxTimeMs = maxTimeMs,
                 elapsedMs = elapsedMs,
                 score = score,
                 foundWords = found
             )
         )
+    }
+
+    private fun showTimeoutDialog() {
+        val configuredMinutes = (maxTimeMs / 60_000L).toInt()
+        Toast.makeText(
+            this,
+            "Tiempo agotado (${GameSettings.formatTimeLimit(configuredMinutes)})",
+            Toast.LENGTH_LONG
+        ).show()
+        AlertDialog.Builder(this)
+            .setTitle("Tiempo agotado")
+            .setMessage("Se terminó tu tiempo de ${GameSettings.formatTimeLimit(configuredMinutes)} en ${level.difficulty.title}. ¿Quieres reintentar este nivel?")
+            .setCancelable(false)
+            .setPositiveButton("Reintentar") { _, _ ->
+                startActivity(Intent(this, GameActivity::class.java).apply {
+                    putExtra(EXTRA_PLAYER_NAME, playerName)
+                    putExtra(EXTRA_DIFFICULTY, level.difficulty.key)
+                    putExtra(EXTRA_LEVEL_NUMBER, level.levelNumber)
+                    putExtra(EXTRA_SESSION_SEED, Random.nextInt())
+                })
+                finish()
+            }
+            .setNegativeButton("Menú") { _, _ ->
+                startActivity(Intent(this, MainActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+                })
+                finish()
+            }
+            .show()
     }
 
     override fun onDestroy() {
