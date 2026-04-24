@@ -23,6 +23,7 @@ class WordSearchView @JvmOverloads constructor(
     var onWordFound: ((String) -> Unit)? = null
 
     private var gridSize = 9
+    private var boardSeed = 0
     private var grid: Array<CharArray> = Array(gridSize) { CharArray(gridSize) { ' ' } }
     private var placements: List<Placement> = emptyList()
     private val foundCells = mutableSetOf<Pair<Int, Int>>()
@@ -55,11 +56,14 @@ class WordSearchView @JvmOverloads constructor(
         isFakeBoldText = true
     }
 
-    fun setLevel(level: LevelConfig) {
+    fun setLevel(level: LevelConfig, restoredWords: Set<String> = emptySet()) {
         gridSize = level.gridSize
+        boardSeed = level.boardSeed
         foundCells.clear()
         foundWords.clear()
-        generateBoard(level.words)
+        foundWords.addAll(restoredWords)
+        generateBoard(level.words.map { it.boardText })
+        restoreFoundCells()
         requestLayout()
         invalidate()
     }
@@ -69,7 +73,7 @@ class WordSearchView @JvmOverloads constructor(
             0 to 1, 1 to 0, 1 to 1, -1 to 1,
             0 to -1, -1 to 0, -1 to -1, 1 to -1
         )
-        val rnd = java.util.Random()
+        val rnd = java.util.Random(boardSeed.toLong())
 
         for (attempt in 0 until 50) {
             val board = Array(gridSize) { CharArray(gridSize) { ' ' } }
@@ -122,6 +126,13 @@ class WordSearchView @JvmOverloads constructor(
         // Fallback: fill random letters
         grid = Array(gridSize) { CharArray(gridSize) { ('A' + rnd.nextInt(26)) } }
         placements = emptyList()
+    }
+
+    private fun restoreFoundCells() {
+        foundCells.clear()
+        placements
+            .filter { foundWords.contains(it.word) }
+            .forEach { foundCells.addAll(it.cells) }
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {

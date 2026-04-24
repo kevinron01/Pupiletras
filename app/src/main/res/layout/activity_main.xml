@@ -1,105 +1,227 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:gravity="center"
-    android:background="@color/bg_main"
-    android:padding="28dp">
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/app_name"
-        android:textSize="52sp"
-        android:textColor="@color/primary"
-        android:textStyle="bold"
-        android:fontFamily="sans-serif-condensed"
-        android:layout_marginBottom="6dp" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Encuentra las palabras ocultas"
-        android:textSize="15sp"
-        android:textColor="@color/text_secondary"
-        android:layout_marginBottom="52dp" />
+    android:fillViewport="true"
+    android:background="@color/bg_main">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:background="@drawable/card_bg"
-        android:layout_marginBottom="14dp"
-        android:padding="4dp">
-
-        <Button
-            android:id="@+id/btnLevel1"
-            android:layout_width="match_parent"
-            android:layout_height="64dp"
-            android:text="Nivel 1 — Fácil · Animales"
-            android:textSize="17sp"
-            android:backgroundTint="@color/level1" />
+        android:padding="24dp">
 
         <TextView
-            android:id="@+id/tvDesc1"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:gravity="center"
-            android:textSize="12sp"
-            android:textColor="@color/text_secondary"
-            android:paddingBottom="4dp" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:background="@drawable/card_bg"
-        android:layout_marginBottom="14dp"
-        android:padding="4dp">
-
-        <Button
-            android:id="@+id/btnLevel2"
-            android:layout_width="match_parent"
-            android:layout_height="64dp"
-            android:text="Nivel 2 — Medio · Frutas"
-            android:textSize="17sp"
-            android:backgroundTint="@color/level2" />
+            android:text="@string/app_name"
+            android:textSize="48sp"
+            android:textColor="@color/primary"
+            android:textStyle="bold"
+            android:fontFamily="sans-serif-condensed"
+            android:layout_marginBottom="6dp" />
 
         <TextView
-            android:id="@+id/tvDesc2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Tu sopa de letras con progreso infinito."
+            android:textSize="16sp"
+            android:textColor="@color/text_secondary"
+            android:layout_marginBottom="24dp" />
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center"
-            android:textSize="12sp"
-            android:textColor="@color/text_secondary"
-            android:paddingBottom="4dp" />
-    </LinearLayout>
+            android:orientation="horizontal"
+            android:background="@drawable/play_panel_bg"
+            android:gravity="center_vertical"
+            android:padding="18dp"
+            android:layout_marginBottom="18dp">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:background="@drawable/card_bg"
-        android:padding="4dp">
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Explora palabras, gana puntos y sigue tu aventura."
+                android:textColor="@color/primary_dark"
+                android:textStyle="bold"
+                android:textSize="16sp" />
 
-        <Button
-            android:id="@+id/btnLevel3"
+            <TextView
+                android:id="@+id/tvTotalScore"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/score_badge_bg"
+                android:paddingHorizontal="14dp"
+                android:paddingVertical="10dp"
+                android:textColor="@color/white"
+                android:textStyle="bold"
+                android:textSize="15sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/resumeCard"
             android:layout_width="match_parent"
-            android:layout_height="64dp"
-            android:text="Nivel 3 — Difícil · Países"
-            android:textSize="17sp"
-            android:backgroundTint="@color/level3" />
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/card_bg"
+            android:padding="18dp"
+            android:layout_marginBottom="18dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/tvResumeTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/primary_dark"
+                android:textStyle="bold"
+                android:textSize="17sp" />
+
+            <TextView
+                android:id="@+id/tvResumeDesc"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp"
+                android:layout_marginTop="6dp"
+                android:layout_marginBottom="10dp" />
+
+            <Button
+                android:id="@+id/btnResume"
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:text="Reanudar partida"
+                android:textSize="16sp"
+                android:backgroundTint="@color/primary" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/card_bg"
+            android:padding="18dp"
+            android:layout_marginBottom="18dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Nombre del jugador"
+                android:textColor="@color/primary_dark"
+                android:textStyle="bold"
+                android:textSize="16sp"
+                android:layout_marginBottom="8dp" />
+
+            <EditText
+                android:id="@+id/etPlayerName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Escribe tu nombre"
+                android:inputType="textPersonName"
+                android:maxLines="1"
+                android:padding="14dp"
+                android:backgroundTint="@color/primary" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="El juego guardará tu avance por dificultad."
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp"
+                android:layout_marginTop="10dp" />
+        </LinearLayout>
 
         <TextView
-            android:id="@+id/tvDesc3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Selecciona una dificultad"
+            android:textColor="@color/primary_dark"
+            android:textStyle="bold"
+            android:textSize="18sp"
+            android:layout_marginBottom="12dp" />
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center"
-            android:textSize="12sp"
-            android:textColor="@color/text_secondary"
-            android:paddingBottom="4dp" />
-    </LinearLayout>
+            android:orientation="vertical"
+            android:background="@drawable/card_bg"
+            android:layout_marginBottom="14dp"
+            android:padding="6dp">
 
-</LinearLayout>
+            <Button
+                android:id="@+id/btnEasy"
+                android:layout_width="match_parent"
+                android:layout_height="64dp"
+                android:textSize="17sp"
+                android:backgroundTint="@color/level1" />
+
+            <TextView
+                android:id="@+id/tvEasyDesc"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp"
+                android:gravity="center"
+                android:padding="8dp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/card_bg"
+            android:layout_marginBottom="14dp"
+            android:padding="6dp">
+
+            <Button
+                android:id="@+id/btnMedium"
+                android:layout_width="match_parent"
+                android:layout_height="64dp"
+                android:textSize="17sp"
+                android:backgroundTint="@color/level2" />
+
+            <TextView
+                android:id="@+id/tvMediumDesc"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp"
+                android:gravity="center"
+                android:padding="8dp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/card_bg"
+            android:padding="6dp">
+
+            <Button
+                android:id="@+id/btnHard"
+                android:layout_width="match_parent"
+                android:layout_height="64dp"
+                android:textSize="17sp"
+                android:backgroundTint="@color/level3" />
+
+            <TextView
+                android:id="@+id/tvHardDesc"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp"
+                android:gravity="center"
+                android:padding="8dp" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Cada nivel mezcla palabras nuevas, muestra sus significados y aumenta el tamaño del tablero."
+            android:textColor="@color/text_secondary"
+            android:textSize="13sp"
+            android:gravity="center"
+            android:layout_marginTop="18dp" />
+
+    </LinearLayout>
+</ScrollView>
