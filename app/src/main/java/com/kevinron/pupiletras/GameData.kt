@@ -85,10 +85,10 @@ object GameData {
         val levelSeed = difficulty.key.hashCode() * 31 + safeLevel * 17 + sessionSeed
         val random = Random(levelSeed)
 
-        val gridGrowth = (safeLevel - 1) / 3
+        val gridGrowth = (safeLevel - 1) / 2
         val gridSize = min(difficulty.baseGridSize + gridGrowth, difficulty.maxGridSize)
         val desiredWordCount = min(
-            difficulty.baseWordCount + ((safeLevel - 1) / 2),
+            difficulty.baseWordCount + ((safeLevel - 1) / 2) + 1,
             vocabulary.size.coerceAtMost(gridSize + 2)
         )
 

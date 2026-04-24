@@ -34,6 +34,13 @@ class MainActivity : AppCompatActivity() {
             return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 .getString(KEY_PLAYER_NAME, "")?.trim().orEmpty()
         }
+
+        fun savePlayerName(context: Context, name: String) {
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .putString(KEY_PLAYER_NAME, name.trim())
+                .apply()
+        }
     }
 
     private lateinit var playerNameInput: EditText
@@ -120,10 +127,7 @@ class MainActivity : AppCompatActivity() {
             playerNameInput.requestFocus()
             return null
         }
-        getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .edit()
-            .putString(KEY_PLAYER_NAME, playerName)
-            .apply()
+        savePlayerName(this, playerName)
         return playerName
     }
 }

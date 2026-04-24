@@ -32,7 +32,7 @@ object GameProgressStore {
             .putLong(KEY_ACTIVE_ELAPSED, state.elapsedMs)
             .putInt(KEY_ACTIVE_SCORE, state.score)
             .putString(KEY_ACTIVE_FOUND, state.foundWords.joinToString("|"))
-            .apply()
+            .commit()
     }
 
     fun loadActiveSession(context: Context): SavedGameState? {

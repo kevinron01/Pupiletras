@@ -21,6 +21,10 @@ class GameActivity : AppCompatActivity() {
         const val EXTRA_LEVEL_NUMBER = "level_number"
         const val EXTRA_SESSION_SEED = "session_seed"
         const val EXTRA_RESUME_SAVED_GAME = "resume_saved_game"
+        private const val HINT_COST = 18
+        private const val SURPRISE_COST = 30
+        private const val HINT_DURATION_MS = 2200L
+        private const val SURPRISE_DURATION_MS = 3500L
     }
 
     private lateinit var level: LevelConfig
@@ -33,20 +37,22 @@ class GameActivity : AppCompatActivity() {
     private lateinit var scoreView: TextView
     private lateinit var cheerView: TextView
     private lateinit var definitionCard: LinearLayout
+    private lateinit var board: WordSearchView
 
     private val found = mutableSetOf<String>()
     private val surpriseMessages = listOf(
-        "Super, sigue buscando",
-        "Tu vocabulario esta creciendo",
-        "Excelente trabajo",
-        "Cada palabra te hace mas fuerte",
-        "Vamos, tu puedes",
-        "Que gran explorador de palabras"
+        "sigue buscando, vas excelente",
+        "tu vocabulario está creciendo",
+        "excelente trabajo",
+        "cada palabra te hace más fuerte",
+        "vamos, tú puedes",
+        "qué gran explorador de palabras"
     )
     private var score = 0
     private var sessionSeed = 0
     private var restoredElapsedMs = 0L
     private var isCompleting = false
+    private var clearHintRunnable: Runnable? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -72,6 +78,7 @@ class GameActivity : AppCompatActivity() {
         score = saved?.score ?: 0
         found.clear()
         found.addAll(saved?.foundWords.orEmpty())
+        MainActivity.savePlayerName(this, playerName)
 
         level = GameData.generateLevel(difficulty, levelNumber, sessionSeed)
 
@@ -101,7 +108,7 @@ class GameActivity : AppCompatActivity() {
         list.adapter = adapter
         adapter.restoreFound(found)
 
-        val board = findViewById<WordSearchView>(R.id.wordSearch)
+        board = findViewById(R.id.wordSearch)
         board.setLevel(level, found)
         board.onWordFound = { word -> handleWordFound(word) }
 
@@ -109,14 +116,21 @@ class GameActivity : AppCompatActivity() {
         updateScore()
         level.words.firstOrNull()?.let { showDefinition(it) }
         if (saved != null) {
-            showCheer("Seguimos donde te quedaste")
+            showCheer("¡$playerName, seguimos donde te quedaste!")
         } else {
-            showCheer("Encuentra palabras y gana estrellas")
+            showCheer("¡$playerName, encuentra palabras y gana estrellas!")
         }
     }
 
     override fun onPause() {
         super.onPause()
+        if (!isCompleting) {
+            saveSession()
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
         if (!isCompleting) {
             saveSession()
         }
@@ -129,7 +143,7 @@ class GameActivity : AppCompatActivity() {
             score += gainedPoints
             updateScore()
             animateScore()
-            showCheer("${surpriseMessages.random()} +$gainedPoints puntos")
+            showCheer("¡$playerName, ${surpriseMessages.random()}! +$gainedPoints puntos")
             level.words.firstOrNull { it.boardText == word }?.let { showDefinition(it) }
             updateProgress()
             if (found.size == level.words.size) {
@@ -209,29 +223,62 @@ class GameActivity : AppCompatActivity() {
     private fun showHint() {
         val remaining = level.words.filterNot { found.contains(it.boardText) }
         if (remaining.isEmpty()) {
-            showCheer("Ya encontraste todas")
+            showCheer("¡$playerName, ya encontraste todas!")
             return
         }
         val word = remaining.random()
         showDefinition(word)
-        val cost = 12
-        score = (score - cost).coerceAtLeast(0)
-        updateScore()
-        animateScore()
-        val secondLetter = word.text.getOrNull(1)?.lowercaseChar()
-        val hintMessage = if (secondLetter != null) {
-            "Pista: empieza por ${word.text.first()} y lleva $secondLetter"
+        applyAidCost(HINT_COST)
+        val hasHintOnBoard = board.highlightHintForWord(
+            word.boardText,
+            WordSearchView.HintReveal.START
+        )
+        val position = board.hintStartPosition(word.boardText)
+        val hintMessage = if (hasHintOnBoard) {
+            scheduleHintClear(delayMs = HINT_DURATION_MS)
+            if (position != null) {
+                "Pista: ${word.text} inicia cerca de fila ${position.row}, columna ${position.col}"
+            } else {
+                "Pista: mira las casillas amarillas para ubicar ${word.text}"
+            }
         } else {
-            "Pista: empieza por ${word.text.first()}"
+            "Pista: ${word.text} empieza por ${word.text.first()}"
         }
-        showCheer("$hintMessage. -$cost puntos")
+        showCheer("¡$playerName! $hintMessage. -$HINT_COST puntos")
         saveSession()
     }
 
     private fun showSurprise() {
-        val randomWord = level.words.random()
+        val remaining = level.words.filterNot { found.contains(it.boardText) }
+        if (remaining.isEmpty()) {
+            showCheer("¡$playerName, ya encontraste todas!")
+            return
+        }
+        val randomWord = remaining.random()
         showDefinition(randomWord)
-        showCheer(surpriseMessages.random())
+        applyAidCost(SURPRISE_COST)
+        if (board.highlightHintForWord(randomWord.boardText, WordSearchView.HintReveal.FULL)) {
+            scheduleHintClear(delayMs = SURPRISE_DURATION_MS)
+            showCheer("¡$playerName! Sorpresa: la palabra ${randomWord.text} fue señalada. ¡Márcala! -$SURPRISE_COST puntos")
+        } else {
+            showCheer("¡$playerName! Sorpresa: busca ${randomWord.text}. -$SURPRISE_COST puntos")
+        }
+        saveSession()
+    }
+
+    private fun applyAidCost(cost: Int) {
+        score = (score - cost).coerceAtLeast(0)
+        updateScore()
+        animateScore()
+    }
+
+    private fun scheduleHintClear(delayMs: Long) {
+        clearHintRunnable?.let { board.removeCallbacks(it) }
+        clearHintRunnable = Runnable {
+            board.clearHint()
+            clearHintRunnable = null
+        }
+        board.postDelayed(clearHintRunnable, delayMs)
     }
 
     private fun cycleDefinition() {
@@ -240,7 +287,7 @@ class GameActivity : AppCompatActivity() {
         val currentIndex = level.words.indexOfFirst { it.text == currentTitle }
         val nextIndex = if (currentIndex == -1) 0 else (currentIndex + 1) % level.words.size
         showDefinition(level.words[nextIndex])
-        showCheer("Toca otra palabra o sigue buscando")
+        showCheer("¡$playerName, toca otra palabra o sigue buscando!")
     }
 
     private fun pulseDefinitionCard() {
@@ -271,5 +318,13 @@ class GameActivity : AppCompatActivity() {
                 foundWords = found
             )
         )
+    }
+
+    override fun onDestroy() {
+        if (::board.isInitialized) {
+            clearHintRunnable?.let { board.removeCallbacks(it) }
+        }
+        clearHintRunnable = null
+        super.onDestroy()
     }
 }
