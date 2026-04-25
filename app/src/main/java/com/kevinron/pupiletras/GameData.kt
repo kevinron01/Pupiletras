@@ -91,16 +91,16 @@ object GameData {
             Difficulty.HARD -> 1
         }
         val gridGrowth = (safeLevel - 1) / gridGrowthStep
-        val gridSize = min(difficulty.baseGridSize + gridGrowth, difficulty.maxGridSize)
+        val baseGridSize = min(difficulty.baseGridSize + gridGrowth, difficulty.maxGridSize)
         val levelWordRamp = when (difficulty) {
             Difficulty.EASY -> ((safeLevel - 1) / 2) + 1
             Difficulty.MEDIUM -> ((safeLevel - 1) / 2) + 2
             Difficulty.HARD -> (safeLevel - 1) + 2
         }
         val perDifficultyCap = when (difficulty) {
-            Difficulty.EASY -> gridSize + 1
-            Difficulty.MEDIUM -> gridSize + 2
-            Difficulty.HARD -> gridSize + 3
+            Difficulty.EASY -> baseGridSize + 1
+            Difficulty.MEDIUM -> baseGridSize + 2
+            Difficulty.HARD -> baseGridSize + 3
         }
         val desiredWordCount = min(
             difficulty.baseWordCount + levelWordRamp,
@@ -108,9 +108,9 @@ object GameData {
         )
 
         val maxLength = when (difficulty) {
-            Difficulty.EASY -> min(gridSize, 6 + (safeLevel / 6))
-            Difficulty.MEDIUM -> min(gridSize, 8 + (safeLevel / 4))
-            Difficulty.HARD -> gridSize
+            Difficulty.EASY -> min(baseGridSize, 6 + (safeLevel / 6))
+            Difficulty.MEDIUM -> min(baseGridSize, 8 + (safeLevel / 4))
+            Difficulty.HARD -> baseGridSize
         }
 
         val minLength = when (difficulty) {
@@ -127,6 +127,23 @@ object GameData {
             .shuffled(random)
             .take(desiredWordCount)
             .sortedBy { it.boardText.length }
+
+        val longestWordLength = selectedWords.maxOfOrNull { it.boardText.length } ?: 0
+        val difficultyPadding = when (difficulty) {
+            Difficulty.EASY -> 1
+            Difficulty.MEDIUM -> 2
+            Difficulty.HARD -> 3
+        }
+        val progressionPadding = when (difficulty) {
+            Difficulty.EASY -> safeLevel / 20
+            Difficulty.MEDIUM -> safeLevel / 15
+            Difficulty.HARD -> safeLevel / 10
+        }
+        val gridSize = maxOf(
+            baseGridSize,
+            (longestWordLength + difficultyPadding + progressionPadding)
+                .coerceAtMost(difficulty.maxGridSize)
+        )
 
         val topicLabel = when {
             safeLevel <= 5 -> "Exploración de vocabulario"
