@@ -85,23 +85,38 @@ object GameData {
         val levelSeed = difficulty.key.hashCode() * 31 + safeLevel * 17 + sessionSeed
         val random = Random(levelSeed)
 
-        val gridGrowth = (safeLevel - 1) / 3
+        val gridGrowthStep = when (difficulty) {
+            Difficulty.EASY -> 3
+            Difficulty.MEDIUM -> 2
+            Difficulty.HARD -> 1
+        }
+        val gridGrowth = (safeLevel - 1) / gridGrowthStep
         val gridSize = min(difficulty.baseGridSize + gridGrowth, difficulty.maxGridSize)
+        val levelWordRamp = when (difficulty) {
+            Difficulty.EASY -> ((safeLevel - 1) / 2) + 1
+            Difficulty.MEDIUM -> ((safeLevel - 1) / 2) + 2
+            Difficulty.HARD -> (safeLevel - 1) + 2
+        }
+        val perDifficultyCap = when (difficulty) {
+            Difficulty.EASY -> gridSize + 1
+            Difficulty.MEDIUM -> gridSize + 2
+            Difficulty.HARD -> gridSize + 3
+        }
         val desiredWordCount = min(
-            difficulty.baseWordCount + ((safeLevel - 1) / 2),
-            vocabulary.size.coerceAtMost(gridSize + 2)
+            difficulty.baseWordCount + levelWordRamp,
+            vocabulary.size.coerceAtMost(perDifficultyCap)
         )
 
         val maxLength = when (difficulty) {
-            Difficulty.EASY -> min(gridSize, 7)
-            Difficulty.MEDIUM -> min(gridSize, 10)
+            Difficulty.EASY -> min(gridSize, 6 + (safeLevel / 6))
+            Difficulty.MEDIUM -> min(gridSize, 8 + (safeLevel / 4))
             Difficulty.HARD -> gridSize
         }
 
         val minLength = when (difficulty) {
-            Difficulty.EASY -> 4
-            Difficulty.MEDIUM -> 5
-            Difficulty.HARD -> 6
+            Difficulty.EASY -> 3 + ((safeLevel - 1) / 12)
+            Difficulty.MEDIUM -> 4 + ((safeLevel - 1) / 10)
+            Difficulty.HARD -> 5 + ((safeLevel - 1) / 8)
         }
 
         val candidates = vocabulary
@@ -113,11 +128,18 @@ object GameData {
             .take(desiredWordCount)
             .sortedBy { it.boardText.length }
 
+        val topicLabel = when {
+            safeLevel <= 5 -> "Exploración de vocabulario"
+            safeLevel <= 15 -> "Reto de observación léxica"
+            safeLevel <= 30 -> "Desafío de precisión verbal"
+            else -> "Misión experta de palabras"
+        }
+
         return LevelConfig(
             levelNumber = safeLevel,
             difficulty = difficulty,
             title = "Nivel $safeLevel · ${difficulty.title}",
-            topicLabel = "Vocabulario mixto",
+            topicLabel = topicLabel,
             gridSize = gridSize,
             words = selectedWords,
             boardSeed = random.nextInt()

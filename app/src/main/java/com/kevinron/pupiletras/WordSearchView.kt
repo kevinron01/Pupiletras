@@ -19,15 +19,23 @@ class WordSearchView @JvmOverloads constructor(
 ) : View(context, attrs, defStyle) {
 
     private data class Placement(val word: String, val cells: List<Pair<Int, Int>>)
+    data class HintPosition(val row: Int, val col: Int)
+    enum class HintReveal {
+        START,
+        FULL
+    }
 
     var onWordFound: ((String) -> Unit)? = null
 
     private var gridSize = 9
     private var boardSeed = 0
+    private var activeDifficulty = Difficulty.EASY
+    private var activeLevel = 1
     private var grid: Array<CharArray> = Array(gridSize) { CharArray(gridSize) { ' ' } }
     private var placements: List<Placement> = emptyList()
     private val foundCells = mutableSetOf<Pair<Int, Int>>()
     private val foundWords = mutableSetOf<String>()
+    private val hintCells = mutableSetOf<Pair<Int, Int>>()
 
     private var cellSize = 0f
     private var selStart: Pair<Int, Int>? = null
@@ -50,6 +58,10 @@ class WordSearchView @JvmOverloads constructor(
         color = Color.parseColor("#661565C0")
         style = Paint.Style.FILL
     }
+    private val hintPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#66FFB300")
+        style = Paint.Style.FILL
+    }
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.parseColor("#1A237E")
         textAlign = Paint.Align.CENTER
@@ -59,8 +71,11 @@ class WordSearchView @JvmOverloads constructor(
     fun setLevel(level: LevelConfig, restoredWords: Set<String> = emptySet()) {
         gridSize = level.gridSize
         boardSeed = level.boardSeed
+        activeDifficulty = level.difficulty
+        activeLevel = level.levelNumber
         foundCells.clear()
         foundWords.clear()
+        hintCells.clear()
         foundWords.addAll(restoredWords)
         generateBoard(level.words.map { it.boardText })
         restoreFoundCells()
@@ -68,12 +83,39 @@ class WordSearchView @JvmOverloads constructor(
         invalidate()
     }
 
+    fun highlightHintForWord(word: String, reveal: HintReveal): Boolean {
+        val placement = placements.firstOrNull {
+            it.word == word && !foundWords.contains(it.word)
+        } ?: return false
+        hintCells.clear()
+        val cellsToShow = if (reveal == HintReveal.FULL) {
+            placement.cells
+        } else {
+            placement.cells.take(2)
+        }
+        hintCells.addAll(cellsToShow)
+        invalidate()
+        return true
+    }
+
+    fun hintStartPosition(word: String): HintPosition? {
+        val placement = placements.firstOrNull {
+            it.word == word && !foundWords.contains(it.word)
+        } ?: return null
+        val (row, col) = placement.cells.first()
+        return HintPosition(row = row + 1, col = col + 1)
+    }
+
+    fun clearHint() {
+        if (hintCells.isEmpty()) return
+        hintCells.clear()
+        invalidate()
+    }
+
     private fun generateBoard(words: List<String>) {
-        val directions = listOf(
-            0 to 1, 1 to 0, 1 to 1, -1 to 1,
-            0 to -1, -1 to 0, -1 to -1, 1 to -1
-        )
+        val directions = allowedDirections()
         val rnd = java.util.Random(boardSeed.toLong())
+        val decoyLetters = words.joinToString("").ifEmpty { "ABCDEFGHIJKLMNOPQRSTUVWXYZ" }
 
         for (attempt in 0 until 50) {
             val board = Array(gridSize) { CharArray(gridSize) { ' ' } }
@@ -114,7 +156,7 @@ class WordSearchView @JvmOverloads constructor(
                 for (r in 0 until gridSize) {
                     for (c in 0 until gridSize) {
                         if (board[r][c] == ' ') {
-                            board[r][c] = ('A' + rnd.nextInt(26))
+                            board[r][c] = decoyLetters[rnd.nextInt(decoyLetters.length)]
                         }
                     }
                 }
@@ -126,6 +168,22 @@ class WordSearchView @JvmOverloads constructor(
         // Fallback: fill random letters
         grid = Array(gridSize) { CharArray(gridSize) { ('A' + rnd.nextInt(26)) } }
         placements = emptyList()
+    }
+
+    private fun allowedDirections(): List<Pair<Int, Int>> {
+        val horizontalVertical = listOf(0 to 1, 1 to 0)
+        val diagonals = listOf(1 to 1, 1 to -1)
+        val reverse = listOf(0 to -1, -1 to 0, -1 to -1, -1 to 1)
+        return when (activeDifficulty) {
+            Difficulty.EASY -> {
+                if (activeLevel >= 8) horizontalVertical + diagonals else horizontalVertical
+            }
+            Difficulty.MEDIUM -> {
+                if (activeLevel >= 10) horizontalVertical + diagonals + reverse
+                else horizontalVertical + diagonals + listOf(0 to -1)
+            }
+            Difficulty.HARD -> horizontalVertical + diagonals + reverse
+        }
     }
 
     private fun restoreFoundCells() {
@@ -161,6 +219,9 @@ class WordSearchView @JvmOverloads constructor(
                 canvas.drawRoundRect(rect, 6f, 6f, cellStroke)
                 if (foundCells.contains(r to c)) {
                     canvas.drawRoundRect(rect, 6f, 6f, foundPaint)
+                }
+                if (hintCells.contains(r to c)) {
+                    canvas.drawRoundRect(rect, 6f, 6f, hintPaint)
                 }
             }
         }
@@ -211,6 +272,7 @@ class WordSearchView @JvmOverloads constructor(
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
+                clearHint()
                 selStart = cellAt(event.x, event.y)
                 selEnd = selStart
                 invalidate()
@@ -243,6 +305,7 @@ class WordSearchView @JvmOverloads constructor(
                 (it.word == word || it.word == reversed) &&
                 (it.cells == cells || it.cells == cells.reversed())
         } ?: return
+        hintCells.clear()
         foundWords.add(target.word)
         foundCells.addAll(target.cells)
         onWordFound?.invoke(target.word)
