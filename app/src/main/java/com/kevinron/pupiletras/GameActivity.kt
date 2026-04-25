@@ -40,6 +40,7 @@ class GameActivity : AppCompatActivity() {
     private lateinit var cheerView: TextView
     private lateinit var definitionCard: LinearLayout
     private lateinit var board: WordSearchView
+    private lateinit var timeLeftView: TextView
 
     private val found = mutableSetOf<String>()
     private val surpriseMessages = listOf(
@@ -100,11 +101,14 @@ class GameActivity : AppCompatActivity() {
         scoreView = findViewById(R.id.tvScore)
         cheerView = findViewById(R.id.tvCheer)
         definitionCard = findViewById(R.id.definitionCard)
+        timeLeftView = findViewById(R.id.tvTimeLeft)
 
         chronometer.base = SystemClock.elapsedRealtime() - restoredElapsedMs
+        updateTimeLeftLabel(restoredElapsedMs)
         chronometer.setOnChronometerTickListener {
             if (!isCompleting) {
                 val elapsedMs = SystemClock.elapsedRealtime() - chronometer.base
+                updateTimeLeftLabel(elapsedMs)
                 if (elapsedMs >= maxTimeMs) {
                     handleTimeExpired()
                 }
@@ -198,9 +202,18 @@ class GameActivity : AppCompatActivity() {
         clearHintRunnable?.let { board.removeCallbacks(it) }
         clearHintRunnable = null
         board.clearHint()
+        val elapsedMs = (SystemClock.elapsedRealtime() - chronometer.base).coerceAtMost(maxTimeMs)
+        val wordsFound = found.size
+        val wordsTotal = level.words.size
+        val scoreAtTimeout = score
         GameProgressStore.clearActiveSession(this)
         showCheer("¡$playerName! Se acabó el tiempo en ${level.difficulty.title}. Inténtalo de nuevo.")
-        showTimeoutDialog()
+        showTimeoutDialog(
+            elapsedMs = elapsedMs,
+            wordsFound = wordsFound,
+            wordsTotal = wordsTotal,
+            finalScore = scoreAtTimeout
+        )
     }
 
     private fun updateProgress() {
@@ -359,8 +372,15 @@ class GameActivity : AppCompatActivity() {
         )
     }
 
-    private fun showTimeoutDialog() {
+    private fun showTimeoutDialog(
+        elapsedMs: Long,
+        wordsFound: Int,
+        wordsTotal: Int,
+        finalScore: Int
+    ) {
         val configuredMinutes = (maxTimeMs / 60_000L).toInt()
+        val elapsedSeconds = elapsedMs / 1000
+        val elapsedString = String.format("%02d:%02d", elapsedSeconds / 60, elapsedSeconds % 60)
         Toast.makeText(
             this,
             "Tiempo agotado (${GameSettings.formatTimeLimit(configuredMinutes)})",
@@ -368,7 +388,13 @@ class GameActivity : AppCompatActivity() {
         ).show()
         AlertDialog.Builder(this)
             .setTitle("Tiempo agotado")
-            .setMessage("Se terminó tu tiempo de ${GameSettings.formatTimeLimit(configuredMinutes)} en ${level.difficulty.title}. ¿Quieres reintentar este nivel?")
+            .setMessage(
+                "Tiempo límite: ${GameSettings.formatTimeLimit(configuredMinutes)}\n" +
+                    "Tiempo jugado: $elapsedString\n" +
+                    "Progreso: $wordsFound/$wordsTotal palabras\n" +
+                    "Puntaje final: $finalScore\n\n" +
+                    "¿Quieres reintentar este nivel?"
+            )
             .setCancelable(false)
             .setPositiveButton("Reintentar") { _, _ ->
                 startActivity(Intent(this, GameActivity::class.java).apply {
@@ -386,6 +412,13 @@ class GameActivity : AppCompatActivity() {
                 finish()
             }
             .show()
+    }
+
+    private fun updateTimeLeftLabel(elapsedMs: Long = (SystemClock.elapsedRealtime() - chronometer.base)) {
+        val remainingMs = (maxTimeMs - elapsedMs).coerceAtLeast(0L)
+        val remainingSeconds = remainingMs / 1000
+        val text = String.format("Tiempo restante: %02d:%02d", remainingSeconds / 60, remainingSeconds % 60)
+        timeLeftView.text = text
     }
 
     override fun onDestroy() {

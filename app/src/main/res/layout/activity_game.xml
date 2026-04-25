@@ -54,6 +54,15 @@
                 android:textColor="@color/primary_dark"
                 android:textSize="11sp"
                 android:alpha="0.75" />
+
+            <TextView
+                android:id="@+id/tvTimeLeft"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/primary_dark"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:alpha="0.8" />
         </LinearLayout>
 
         <Chronometer
