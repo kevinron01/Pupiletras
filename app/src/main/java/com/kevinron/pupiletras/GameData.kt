@@ -85,23 +85,38 @@ object GameData {
         val levelSeed = difficulty.key.hashCode() * 31 + safeLevel * 17 + sessionSeed
         val random = Random(levelSeed)
 
-        val gridGrowth = (safeLevel - 1) / 3
-        val gridSize = min(difficulty.baseGridSize + gridGrowth, difficulty.maxGridSize)
+        val gridGrowthStep = when (difficulty) {
+            Difficulty.EASY -> 3
+            Difficulty.MEDIUM -> 2
+            Difficulty.HARD -> 1
+        }
+        val gridGrowth = (safeLevel - 1) / gridGrowthStep
+        val baseGridSize = min(difficulty.baseGridSize + gridGrowth, difficulty.maxGridSize)
+        val levelWordRamp = when (difficulty) {
+            Difficulty.EASY -> ((safeLevel - 1) / 2) + 1
+            Difficulty.MEDIUM -> ((safeLevel - 1) / 2) + 2
+            Difficulty.HARD -> (safeLevel - 1) + 2
+        }
+        val perDifficultyCap = when (difficulty) {
+            Difficulty.EASY -> baseGridSize + 1
+            Difficulty.MEDIUM -> baseGridSize + 2
+            Difficulty.HARD -> baseGridSize + 3
+        }
         val desiredWordCount = min(
-            difficulty.baseWordCount + ((safeLevel - 1) / 2),
-            vocabulary.size.coerceAtMost(gridSize + 2)
+            difficulty.baseWordCount + levelWordRamp,
+            vocabulary.size.coerceAtMost(perDifficultyCap)
         )
 
         val maxLength = when (difficulty) {
-            Difficulty.EASY -> min(gridSize, 7)
-            Difficulty.MEDIUM -> min(gridSize, 10)
-            Difficulty.HARD -> gridSize
+            Difficulty.EASY -> min(baseGridSize, 6 + (safeLevel / 6))
+            Difficulty.MEDIUM -> min(baseGridSize, 8 + (safeLevel / 4))
+            Difficulty.HARD -> baseGridSize
         }
 
         val minLength = when (difficulty) {
-            Difficulty.EASY -> 4
-            Difficulty.MEDIUM -> 5
-            Difficulty.HARD -> 6
+            Difficulty.EASY -> 3 + ((safeLevel - 1) / 12)
+            Difficulty.MEDIUM -> 4 + ((safeLevel - 1) / 10)
+            Difficulty.HARD -> 5 + ((safeLevel - 1) / 8)
         }
 
         val candidates = vocabulary
@@ -113,11 +128,35 @@ object GameData {
             .take(desiredWordCount)
             .sortedBy { it.boardText.length }
 
+        val longestWordLength = selectedWords.maxOfOrNull { it.boardText.length } ?: 0
+        val difficultyPadding = when (difficulty) {
+            Difficulty.EASY -> 1
+            Difficulty.MEDIUM -> 2
+            Difficulty.HARD -> 3
+        }
+        val progressionPadding = when (difficulty) {
+            Difficulty.EASY -> safeLevel / 20
+            Difficulty.MEDIUM -> safeLevel / 15
+            Difficulty.HARD -> safeLevel / 10
+        }
+        val gridSize = maxOf(
+            baseGridSize,
+            (longestWordLength + difficultyPadding + progressionPadding)
+                .coerceAtMost(difficulty.maxGridSize)
+        )
+
+        val topicLabel = when {
+            safeLevel <= 5 -> "Exploración de vocabulario"
+            safeLevel <= 15 -> "Reto de observación léxica"
+            safeLevel <= 30 -> "Desafío de precisión verbal"
+            else -> "Misión experta de palabras"
+        }
+
         return LevelConfig(
             levelNumber = safeLevel,
             difficulty = difficulty,
             title = "Nivel $safeLevel · ${difficulty.title}",
-            topicLabel = "Vocabulario mixto",
+            topicLabel = topicLabel,
             gridSize = gridSize,
             words = selectedWords,
             boardSeed = random.nextInt()
