@@ -29,6 +29,8 @@ class WordSearchView @JvmOverloads constructor(
 
     private var gridSize = 9
     private var boardSeed = 0
+    private var activeDifficulty = Difficulty.EASY
+    private var activeLevel = 1
     private var grid: Array<CharArray> = Array(gridSize) { CharArray(gridSize) { ' ' } }
     private var placements: List<Placement> = emptyList()
     private val foundCells = mutableSetOf<Pair<Int, Int>>()
@@ -69,6 +71,8 @@ class WordSearchView @JvmOverloads constructor(
     fun setLevel(level: LevelConfig, restoredWords: Set<String> = emptySet()) {
         gridSize = level.gridSize
         boardSeed = level.boardSeed
+        activeDifficulty = level.difficulty
+        activeLevel = level.levelNumber
         foundCells.clear()
         foundWords.clear()
         hintCells.clear()
@@ -109,10 +113,7 @@ class WordSearchView @JvmOverloads constructor(
     }
 
     private fun generateBoard(words: List<String>) {
-        val directions = listOf(
-            0 to 1, 1 to 0, 1 to 1, -1 to 1,
-            0 to -1, -1 to 0, -1 to -1, 1 to -1
-        )
+        val directions = allowedDirections()
         val rnd = java.util.Random(boardSeed.toLong())
         val decoyLetters = words.joinToString("").ifEmpty { "ABCDEFGHIJKLMNOPQRSTUVWXYZ" }
 
@@ -167,6 +168,22 @@ class WordSearchView @JvmOverloads constructor(
         // Fallback: fill random letters
         grid = Array(gridSize) { CharArray(gridSize) { ('A' + rnd.nextInt(26)) } }
         placements = emptyList()
+    }
+
+    private fun allowedDirections(): List<Pair<Int, Int>> {
+        val horizontalVertical = listOf(0 to 1, 1 to 0)
+        val diagonals = listOf(1 to 1, 1 to -1)
+        val reverse = listOf(0 to -1, -1 to 0, -1 to -1, -1 to 1)
+        return when (activeDifficulty) {
+            Difficulty.EASY -> {
+                if (activeLevel >= 8) horizontalVertical + diagonals else horizontalVertical
+            }
+            Difficulty.MEDIUM -> {
+                if (activeLevel >= 10) horizontalVertical + diagonals + reverse
+                else horizontalVertical + diagonals + listOf(0 to -1)
+            }
+            Difficulty.HARD -> horizontalVertical + diagonals + reverse
+        }
     }
 
     private fun restoreFoundCells() {

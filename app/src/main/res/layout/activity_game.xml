@@ -129,6 +129,20 @@
             android:textSize="15sp" />
     </LinearLayout>
 
+    <TextView
+        android:id="@+id/tvObjective"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="12dp"
+        android:layout_marginTop="6dp"
+        android:layout_marginBottom="2dp"
+        android:background="@drawable/card_bg"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="10dp"
+        android:textColor="@color/primary_dark"
+        android:textSize="13sp"
+        android:textStyle="bold" />
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

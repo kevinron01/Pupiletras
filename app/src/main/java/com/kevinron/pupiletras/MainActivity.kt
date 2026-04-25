@@ -3,11 +3,13 @@ package com.kevinron.pupiletras
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.text.InputType
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity() {
@@ -119,18 +121,54 @@ class MainActivity : AppCompatActivity() {
     private fun bindTimeSetting(button: Button, difficulty: Difficulty) {
         fun renderLabel() {
             val minutes = GameSettings.timeLimitMinutes(this, difficulty)
-            button.text = "${difficulty.title}: ${GameSettings.formatTimeLimit(minutes)}"
+            button.text = "${difficulty.title}: ${GameSettings.formatTimeLimit(minutes)} (editar)"
         }
         renderLabel()
         button.setOnClickListener {
-            val updated = GameSettings.cycleTimeLimitMinutes(this, difficulty)
-            button.text = "${difficulty.title}: ${GameSettings.formatTimeLimit(updated)}"
-            Toast.makeText(
-                this,
-                "Tiempo máximo en ${difficulty.title.lowercase()}: ${GameSettings.formatTimeLimit(updated)}",
-                Toast.LENGTH_SHORT
-            ).show()
+            showTimeInputDialog(difficulty) { updated ->
+                button.text = "${difficulty.title}: ${GameSettings.formatTimeLimit(updated)} (editar)"
+                Toast.makeText(
+                    this,
+                    "Tiempo máximo en ${difficulty.title.lowercase()}: ${GameSettings.formatTimeLimit(updated)}",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
         }
+    }
+
+    private fun showTimeInputDialog(difficulty: Difficulty, onSaved: (Int) -> Unit) {
+        val current = GameSettings.timeLimitMinutes(this, difficulty)
+        val input = EditText(this).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER
+            setText(current.toString())
+            setSelection(text.length)
+            hint = "Minutos (${GameSettings.rangeLabel(difficulty)})"
+            setPadding(48, 36, 48, 8)
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Tiempo para ${difficulty.title}")
+            .setMessage("Ingresa minutos para cada partida (${GameSettings.rangeLabel(difficulty)}).")
+            .setView(input)
+            .setPositiveButton("Guardar") { _, _ ->
+                val raw = input.text.toString().trim().toIntOrNull()
+                if (raw == null) {
+                    Toast.makeText(this, "Ingresa un número válido.", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                val normalized = GameSettings.normalizeInputMinutes(difficulty, raw)
+                GameSettings.saveTimeLimitMinutes(this, difficulty, normalized)
+                if (raw != normalized) {
+                    Toast.makeText(
+                        this,
+                        "Se ajustó a ${GameSettings.formatTimeLimit(normalized)} para ${difficulty.title}.",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+                onSaved(normalized)
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
     }
 
     private fun bindDifficulty(buttonId: Int, descId: Int, difficulty: Difficulty) {

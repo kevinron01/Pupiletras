@@ -151,7 +151,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Toca para cambiar el tiempo máximo por partida según dificultad."
+                android:text="Define el tiempo máximo por dificultad ingresando los minutos."
                 android:textColor="@color/text_secondary"
                 android:textSize="13sp"
                 android:layout_marginBottom="10dp" />

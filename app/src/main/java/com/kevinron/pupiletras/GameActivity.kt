@@ -38,6 +38,7 @@ class GameActivity : AppCompatActivity() {
     private lateinit var definitionText: TextView
     private lateinit var scoreView: TextView
     private lateinit var cheerView: TextView
+    private lateinit var objectiveView: TextView
     private lateinit var definitionCard: LinearLayout
     private lateinit var board: WordSearchView
     private lateinit var timeLeftView: TextView
@@ -57,6 +58,8 @@ class GameActivity : AppCompatActivity() {
     private var isCompleting = false
     private var clearHintRunnable: Runnable? = null
     private var maxTimeMs: Long = 0L
+    private var streakCount: Int = 0
+    private var lastFoundElapsedMs: Long = -1L
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -100,6 +103,7 @@ class GameActivity : AppCompatActivity() {
         definitionText = findViewById(R.id.tvDefinitionText)
         scoreView = findViewById(R.id.tvScore)
         cheerView = findViewById(R.id.tvCheer)
+        objectiveView = findViewById(R.id.tvObjective)
         definitionCard = findViewById(R.id.definitionCard)
         timeLeftView = findViewById(R.id.tvTimeLeft)
 
@@ -133,6 +137,7 @@ class GameActivity : AppCompatActivity() {
 
         updateProgress()
         updateScore()
+        updateObjective()
         level.words.firstOrNull()?.let { showDefinition(it) }
         if (saved != null) {
             showCheer("¡$playerName, seguimos donde te quedaste!")
@@ -159,12 +164,22 @@ class GameActivity : AppCompatActivity() {
         if (found.add(word)) {
             adapter.markFound(word)
             val gainedPoints = calculateWordScore(word)
-            score += gainedPoints
+            val elapsedNow = SystemClock.elapsedRealtime() - chronometer.base
+            val comboBonus = calculateComboBonus(elapsedNow)
+            score += gainedPoints + comboBonus
             updateScore()
             animateScore()
-            showCheer("¡$playerName, ${surpriseMessages.random()}! +$gainedPoints puntos")
-            level.words.firstOrNull { it.boardText == word }?.let { showDefinition(it) }
+            val foundWord = level.words.firstOrNull { it.boardText == word }
+            foundWord?.let { showDefinition(it) }
+            val didacticNote = foundWord?.definition
+                ?.take(56)
+                ?.trim()
+                ?.let { " · Dato: $it..." }
+                .orEmpty()
+            val comboText = if (comboBonus > 0) " + combo $comboBonus" else ""
+            showCheer("¡$playerName, ${surpriseMessages.random()}! +$gainedPoints$comboText puntos$didacticNote")
             updateProgress()
+            updateObjective()
             if (found.size == level.words.size) {
                 completeLevel()
             } else {
@@ -218,6 +233,23 @@ class GameActivity : AppCompatActivity() {
 
     private fun updateProgress() {
         progress.text = "${found.size}/${level.words.size}"
+    }
+
+    private fun updateObjective() {
+        val remainingWords = level.words.filterNot { found.contains(it.boardText) }
+        if (remainingWords.isEmpty()) {
+            objectiveView.text = "Objetivo: ¡nivel completado! Prepárate para el siguiente reto."
+            return
+        }
+        val largestPending = remainingWords.maxOf { it.boardText.length }
+        val upcoming = remainingWords.first().text
+        val complexityText = when (level.difficulty) {
+            Difficulty.EASY -> "modo guiado"
+            Difficulty.MEDIUM -> "modo estratégico"
+            Difficulty.HARD -> "modo experto"
+        }
+        objectiveView.text =
+            "Objetivo ($complexityText): faltan ${remainingWords.size} palabras · busca una de $largestPending letras · pista didáctica: $upcoming"
     }
 
     private fun updateScore() {
@@ -314,7 +346,23 @@ class GameActivity : AppCompatActivity() {
             Difficulty.MEDIUM -> 1.2
             Difficulty.HARD -> 1.4
         }
-        return (baseCost * multiplier).toInt()
+        val levelRamp = 1 + ((level.levelNumber - 1) / 10)
+        return ((baseCost * multiplier).toInt() + levelRamp).coerceAtLeast(baseCost)
+    }
+
+    private fun calculateComboBonus(elapsedNow: Long): Int {
+        val chainWindowMs = 12_000L
+        streakCount = if (lastFoundElapsedMs > 0 && elapsedNow - lastFoundElapsedMs <= chainWindowMs) {
+            streakCount + 1
+        } else {
+            1
+        }
+        lastFoundElapsedMs = elapsedNow
+        return if (streakCount >= 2) {
+            (streakCount * 4).coerceAtMost(28)
+        } else {
+            0
+        }
     }
 
     private fun applyAidCost(cost: Int) {
